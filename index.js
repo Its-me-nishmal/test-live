@@ -1,5 +1,6 @@
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
+const http = require('http');
 
 // Set the path to the video file (your sample.mp4)
 const videoFilePath = path.join(__dirname, 'sample.mp4');
@@ -7,13 +8,14 @@ const videoFilePath = path.join(__dirname, 'sample.mp4');
 // Set your YouTube stream key directly here
 const youtubeStreamKey = 'su9z-j176-664y-47wb-1zq4';
 
-// FFmpeg function to stream to YouTube
+// Function to stream to YouTube
 function streamToYouTube() {
   const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
 
-  ffmpeg(videoFilePath)
-    .inputOptions('-re') // Stream in real-time
-    .addOption('-stream_loop', '-1') // Loop the video indefinitely
+  ffmpeg()
+    .input(videoFilePath)
+    .inputOptions('-stream_loop', '-1') // Moved to the correct place
+    .addOption('-re') // Stream in real-time
     .addOption('-c:v', 'libx264') // Use H.264 codec for video
     .addOption('-preset', 'veryfast') // Set encoding preset to reduce latency
     .addOption('-maxrate', '3000k') // Max bitrate
@@ -37,5 +39,17 @@ function streamToYouTube() {
     .run();
 }
 
-// Start the stream
+// Start streaming when the script is executed
 streamToYouTube();
+
+// Create an HTTP server to keep the app alive
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('The stream is live!\n');
+});
+
+// Listen on port 3000 or the port provided by the environment (e.g., Render)
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`HTTP server is running on port ${PORT}`);
+});
