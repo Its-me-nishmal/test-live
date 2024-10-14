@@ -14,8 +14,7 @@ function streamToYouTube() {
 
   ffmpeg()
     .input(videoFilePath)
-    .inputOptions('-stream_loop', '-1') // Moved to the correct place
-    .addOption('-re') // Stream in real-time
+    .inputOptions(['-stream_loop -1', '-re']) // Corrected placement of input options
     .addOption('-c:v', 'libx264') // Use H.264 codec for video
     .addOption('-preset', 'veryfast') // Set encoding preset to reduce latency
     .addOption('-maxrate', '3000k') // Max bitrate
