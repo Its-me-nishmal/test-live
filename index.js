@@ -6,7 +6,7 @@ const http = require('http');
 const videoFilePath = path.join(__dirname, 'sample.mp4');
 
 // Set your YouTube stream key directly here
-const youtubeStreamKey = 'su9z-j176-664y-47wb-1zq4';
+const youtubeStreamKey = 'wzb2-5u6t-c13w-mkwx-1j49';
 
 // Function to stream to YouTube
 function streamToYouTube() {
