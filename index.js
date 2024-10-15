@@ -33,13 +33,14 @@ async function fetchYouTubeData() {
 // Start FFmpeg to Stream with Animated Gradient Background and Overlay
 function startFFmpeg() {
   ffmpeg()
-    .input('color=color=black:s=1280x720:d=10') // Base black screen (animated gradient will be on top)
+    .input('lavfi') // Use lavfi as an input format for FFmpeg filters
+    .input('color=black:s=1280x720:d=30') // Generate a black background for 30 seconds as input
     .input(MP3_FILE) // Audio input (MP3 file)
     .complexFilter([
       // Gradient Animation for Background
-      '[0:v] format=yuv420p, geq=lum=\'128*sin(PI*2*t/5)*X/W\':cb=128:cr=128, fade=t=in:st=0:d=5, drawtext=textfile=' + OVERLAY_FILE + ':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2 [bg]',
+      'geq=lum=\'128+128*sin(2*PI*t/10)\':cb=128:cr=128',
       // Overlay text data
-      '[bg] drawtext=textfile=' + OVERLAY_FILE + ':reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2'
+      `drawtext=textfile=${OVERLAY_FILE}:reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`
     ])
     .outputOptions([
       '-c:v libx264',           // Video codec: H.264
