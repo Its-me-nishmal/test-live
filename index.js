@@ -35,7 +35,7 @@ async function fetchYouTubeData() {
     const { background, text } = generateContrastingColors();
 
     // Prepare the dynamic placeholder URL with changing colors
-    const dynamicPlaceholderUrl = `${PLACEHOLDER_URL}/${background}/${text}/png?font=lora&text=Viewer%20Count:%20${data.viewerCount || 'N/A'}%20%0ALikes:%20${data.likes || 'N/A'}%20%0ASubscribers:%20${data.subscriberCount || 'N/A'}`;
+    const dynamicPlaceholderUrl = `${PLACEHOLDER_URL}/${background}/png?&text${text}font=lora&text=Viewer%20Count:%20${data.viewerCount || 'N/A'}%20%0ALikes:%20${data.likes || 'N/A'}%20%0ASubscribers:%20${data.subscriberCount || 'N/A'}`;
 
     // Download the dynamic image as a new overlay image
     const overlayImagePath = path.join(__dirname, 'dynamic_overlay.png');
