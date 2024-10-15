@@ -1,54 +1,80 @@
 const ffmpeg = require('fluent-ffmpeg');
+const axios = require('axios');
+const fs = require('fs');
 const path = require('path');
-const http = require('http');
 
-// Set the path to the video file (your sample.mp4)
-const videoFilePath = path.join(__dirname, 'sample.mp4');
+// Configuration Variables
+const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Replace with your Google Apps Script URL
+const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
+const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
+const STREAM_KEY = 'su9z-j176-664y-47wb-1zq4'; // Replace with your YouTube stream key
 
-// Set your YouTube stream key directly here
-const youtubeStreamKey = 'wzb2-5u6t-c13w-mkwx-1j49';
+// Fetch Data from Google Apps Script
+async function fetchYouTubeData() {
+  try {
+    const response = await axios.get(GOOGLE_SHEET_URL);
+    const data = response.data;
 
-// Function to stream to YouTube
-function streamToYouTube() {
-  const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
+    // Prepare the overlay text
+    const overlayText = `
+      Viewer Count: ${data.viewerCount || 'N/A'}
+      Likes: ${data.likes || 'N/A'}
+      Subscriber Count: ${data.subscriberCount || 'N/A'}
+    `;
 
+    // Write the overlay text to the file
+    fs.writeFileSync(OVERLAY_FILE, overlayText.trim(), 'utf8');
+    console.log(`Overlay updated: ${overlayText.trim()}`);
+  } catch (error) {
+    console.error('Error fetching YouTube data:', error.message);
+  }
+}
+
+// Start FFmpeg to Stream with Animated Gradient Background and Overlay
+function startFFmpeg() {
   ffmpeg()
-    .input(videoFilePath)
-    .inputOptions(['-stream_loop -1', '-re']) // Corrected placement of input options
-    .addOption('-c:v', 'libx264') // Use H.264 codec for video
-    .addOption('-preset', 'veryfast') // Set encoding preset to reduce latency
-    .addOption('-maxrate', '3000k') // Max bitrate
-    .addOption('-bufsize', '6000k') // Buffer size
-    .addOption('-pix_fmt', 'yuv420p') // Pixel format
-    .addOption('-g', '50') // Keyframe interval
-    .addOption('-c:a', 'aac') // Use AAC codec for audio
-    .addOption('-b:a', '128k') // Audio bitrate
-    .addOption('-ar', '44100') // Audio sample rate
-    .addOption('-f', 'flv') // Format for streaming (YouTube uses FLV)
-    .output(youtubeStreamUrl)
-    .on('start', (commandLine) => {
-      console.log('FFmpeg process started with command:', commandLine);
+    .input('color=color=black:s=1280x720:d=10') // Base black screen (animated gradient will be on top)
+    .input(MP3_FILE) // Audio input (MP3 file)
+    .complexFilter([
+      // Gradient Animation for Background
+      '[0:v] format=yuv420p, geq=lum=\'128*sin(PI*2*t/5)*X/W\':cb=128:cr=128, fade=t=in:st=0:d=5, drawtext=textfile=' + OVERLAY_FILE + ':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2 [bg]',
+      // Overlay text data
+      '[bg] drawtext=textfile=' + OVERLAY_FILE + ':reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2'
+    ])
+    .outputOptions([
+      '-c:v libx264',           // Video codec: H.264
+      '-preset veryfast',        // Faster encoding
+      '-maxrate 3000k',          // Maximum bitrate
+      '-bufsize 6000k',          // Buffer size
+      '-pix_fmt yuv420p',        // Pixel format
+      '-g 50',                   // Keyframe interval
+      '-c:a aac',                // Audio codec: AAC
+      '-b:a 128k',               // Audio bitrate
+      '-ar 44100',               // Audio sample rate
+      '-f flv'                   // Streaming format: FLV
+    ])
+    .output(`rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`) // YouTube RTMP URL with stream key
+    .on('start', () => {
+      console.log('FFmpeg process started');
     })
     .on('error', (err) => {
-      console.error('Error occurred during streaming:', err.message);
+      console.error('Error during streaming:', err.message);
     })
     .on('end', () => {
-      console.log('Streaming finished.');
+      console.log('Streaming ended.');
     })
     .run();
 }
 
-// Start streaming when the script is executed
-streamToYouTube();
+// Update overlay and restart FFmpeg every minute
+function updateOverlayAndStream() {
+  fetchYouTubeData(); // Fetch YouTube data
 
-// Create an HTTP server to keep the app alive
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('The stream is live!\n');
-});
+  setInterval(fetchYouTubeData, 60 * 1000); // Fetch data every minute
 
-// Listen on port 3000 or the port provided by the environment (e.g., Render)
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`HTTP server is running on port ${PORT}`);
-});
+  // Start FFmpeg streaming
+  startFFmpeg();
+}
+
+// Run the update and stream process
+updateOverlayAndStream();
