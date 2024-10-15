@@ -6,153 +6,118 @@ const http = require('http');
 
 // Configuration Variables
 const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
-const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static black background image
-const STREAM_KEY = 'g0qj-3f62-utg1-v0u8-72p3'; // Your YouTube stream key
+const STREAM_KEY = 'ces2-mcqc-g9px-2u7z-9u7b'; // Your YouTube stream key
 const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`; // YouTube RTMP URL with stream key
+const PLACEHOLDER_URL = 'https://placehold.co/600x400'; // Base URL for dynamic placeholder images
 const PORT = process.env.PORT || 3000; // HTTP server port
-const VIDEO_DURATION = 30; // Duration of each video in seconds (30 or 60)
-let currentVideoPath = ''; // To store the path of the currently generated video
+let ffmpegStream = null; // To store the FFmpeg process
 
-// Function to fetch data from Google Sheets and update the overlay text file
+// Function to fetch data from Google Sheets and generate a dynamic overlay
 async function fetchYouTubeData() {
   try {
     const response = await axios.get(GOOGLE_SHEET_URL);
     const data = response.data;
 
-    // Prepare the overlay text
-    const overlayText = `
-Viewer Count: ${data.viewerCount || 'N/A'}
-Likes: ${data.likes || 'N/A'}
-Subscriber Count: ${data.subscriberCount || 'N/A'}
-    `.trim();
+    // Generate a random color for the background and text
+    const randomColorBackground = Math.floor(Math.random()*16777215).toString(16);
+    const randomColorText = Math.floor(Math.random()*16777215).toString(16);
 
-    // Write the overlay text to the file
-    fs.writeFileSync(OVERLAY_FILE, overlayText, 'utf8');
-    console.log(`Overlay updated: ${overlayText}`);
-  } catch (error) {
-    console.error('Error fetching YouTube data:', error.message);
-  }
-}
+    // Prepare the dynamic placeholder URL with changing colors
+    const dynamicPlaceholderUrl = `${PLACEHOLDER_URL}/${randomColorBackground}/${randomColorText}/png?font=lora&text=Viewer%20Count:%20${data.viewerCount || 'N/A'}%20%0ALikes:%20${data.likes || 'N/A'}%20%0ASubscribers:%20${data.subscriberCount || 'N/A'}`;
 
-// Function to delete the old video file
-function deleteOldVideo() {
-  if (currentVideoPath && fs.existsSync(currentVideoPath)) {
-    fs.unlink(currentVideoPath, (err) => {
-      if (err) {
-        console.error(`Failed to delete old video (${currentVideoPath}):`, err.message);
-      } else {
-        console.log(`Deleted old video: ${currentVideoPath}`);
-      }
+    // Download the dynamic image as a new overlay image
+    const overlayImagePath = path.join(__dirname, 'dynamic_overlay.png');
+    const writer = fs.createWriteStream(overlayImagePath);
+    const imageResponse = await axios({
+      url: dynamicPlaceholderUrl,
+      method: 'GET',
+      responseType: 'stream'
     });
-  }
-}
 
-// Function to create a new video with the overlay
-function createNewVideo() {
-  return new Promise((resolve, reject) => {
-    const timestamp = Date.now();
-    const newVideoPath = path.join(__dirname, `video_${timestamp}.mp4`);
+    imageResponse.data.pipe(writer);
 
-    ffmpeg()
-      .input(BACKGROUND_IMAGE)
-      .loop(VIDEO_DURATION) // Loop the background image for VIDEO_DURATION seconds
-      .input(MP3_FILE)
-      .inputOptions(['-stream_loop', '-1']) // Loop the audio indefinitely (will be cut by duration)
-      .complexFilter([
-        // Overlay text data (reload the overlay file every second)
-        {
-          filter: 'drawtext',
-          options: {
-            textfile: OVERLAY_FILE,
-            reload: 1,
-            fontcolor: 'white',
-            fontsize: 24,
-            x: '(w-text_w)/2',
-            y: '(h-text_h)/2'
-          }
-        }
-      ])
-      .outputOptions([
-        '-c:v libx264',          // Video codec: H.264
-        '-preset veryfast',      // Encoding preset
-        '-maxrate 3000k',        // Max bitrate
-        '-bufsize 6000k',        // Buffer size
-        '-pix_fmt yuv420p',      // Pixel format
-        '-g 50',                 // Keyframe interval
-        '-c:a aac',              // Audio codec: AAC
-        '-b:a 128k',             // Audio bitrate
-        '-ar 44100',             // Audio sample rate
-        `-t ${VIDEO_DURATION}`   // Duration of the video
-      ])
-      .save(newVideoPath)
-      .on('start', (commandLine) => {
-        console.log(`FFmpeg process started for video creation with command: ${commandLine}`);
-      })
-      .on('end', () => {
-        console.log(`Video created: ${newVideoPath}`);
-        currentVideoPath = newVideoPath;
-        resolve(newVideoPath);
-      })
-      .on('error', (err) => {
-        console.error('Error occurred during video creation:', err.message);
-        reject(err);
+    return new Promise((resolve, reject) => {
+      writer.on('finish', () => {
+        console.log(`Dynamic overlay generated with background color: ${randomColorBackground}, text color: ${randomColorText}`);
+        resolve(overlayImagePath); // Return the path to the overlay image
       });
-  });
-}
-
-// Function to stream a video file to YouTube
-function streamVideoToYouTube(videoPath) {
-  return new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(videoPath)
-      .inputOptions(['-re']) // Read input in real-time
-      .outputOptions([
-        '-c:v libx264',          // Video codec: H.264
-        '-preset veryfast',      // Encoding preset
-        '-maxrate 3000k',        // Max bitrate
-        '-bufsize 6000k',        // Buffer size
-        '-pix_fmt yuv420p',      // Pixel format
-        '-g 50',                 // Keyframe interval
-        '-c:a aac',              // Audio codec: AAC
-        '-b:a 128k',             // Audio bitrate
-        '-ar 44100',             // Audio sample rate
-        '-f flv'                 // Streaming format: FLV
-      ])
-      .output(youtubeStreamUrl)
-      .on('start', (commandLine) => {
-        console.log(`FFmpeg streaming started with command: ${commandLine}`);
-      })
-      .on('end', () => {
-        console.log('FFmpeg streaming finished.');
-        resolve();
-      })
-      .on('error', (err) => {
-        console.error('Error occurred during streaming:', err.message);
-        reject(err);
-      })
-      .run();
-  });
-}
-
-// Function to orchestrate fetching data, creating video, streaming, and cleaning up
-async function processStreamCycle() {
-  try {
-    await fetchYouTubeData();
-    const videoPath = await createNewVideo();
-    await streamVideoToYouTube(videoPath);
-    deleteOldVideo();
+      writer.on('error', reject);
+    });
   } catch (error) {
-    console.error('Error during stream cycle:', error.message);
-  } finally {
-    // Schedule the next cycle after VIDEO_DURATION seconds
-    setTimeout(processStreamCycle, VIDEO_DURATION * 1000);
+    console.error('Error fetching YouTube data or generating overlay:', error.message);
   }
 }
 
-// Start the streaming cycle
-processStreamCycle();
+// Function to start the continuous streaming process using FFmpeg
+function startStreaming() {
+  if (ffmpegStream) {
+    console.log('FFmpeg is already streaming.');
+    return;
+  }
+
+  ffmpegStream = ffmpeg()
+    .input(BACKGROUND_IMAGE) // Loop the background image indefinitely
+    .loop()
+    .input(MP3_FILE) // Loop the audio indefinitely
+    .inputOptions(['-stream_loop', '-1']) // Loop the audio indefinitely
+    .complexFilter([
+      {
+        filter: 'overlay',
+        options: {
+          x: '(main_w-overlay_w)/2', // Center the overlay horizontally
+          y: '(main_h-overlay_h)/2'  // Center the overlay vertically
+        }
+      }
+    ])
+    .outputOptions([
+      '-c:v libx264',          // Video codec: H.264
+      '-preset veryfast',      // Encoding preset for faster streaming
+      '-maxrate 3000k',        // Max bitrate
+      '-bufsize 6000k',        // Buffer size
+      '-pix_fmt yuv420p',      // Pixel format
+      '-g 50',                 // Keyframe interval
+      '-c:a aac',              // Audio codec: AAC
+      '-b:a 128k',             // Audio bitrate
+      '-ar 44100',             // Audio sample rate
+      '-f flv'                 // Streaming format: FLV
+    ])
+    .output(youtubeStreamUrl) // Output to YouTube
+    .on('start', (commandLine) => {
+      console.log(`FFmpeg streaming started with command: ${commandLine}`);
+    })
+    .on('error', (err) => {
+      console.error('Error during streaming:', err.message);
+      ffmpegStream = null;
+      setTimeout(startStreaming, 5000); // Retry streaming after 5 seconds if an error occurs
+    })
+    .on('end', () => {
+      console.log('FFmpeg streaming ended.');
+      ffmpegStream = null;
+      setTimeout(startStreaming, 5000); // Restart streaming after 5 seconds
+    })
+    .run();
+}
+
+// Function to periodically update overlay without cutting the stream
+async function updateOverlayPeriodically() {
+  try {
+    const overlayPath = await fetchYouTubeData();
+    ffmpegStream.input(overlayPath); // Update the overlay dynamically
+    console.log('Overlay updated for the stream.');
+  } catch (error) {
+    console.error('Failed to update overlay:', error.message);
+  }
+  // Schedule the next overlay update after 1 minute
+  setTimeout(updateOverlayPeriodically, 60 * 1000);
+}
+
+// Start the streaming process
+startStreaming();
+
+// Start updating the overlay periodically every minute
+updateOverlayPeriodically();
 
 // Create a simple HTTP server to keep the app alive (useful for hosting services like Heroku)
 http.createServer((req, res) => {
