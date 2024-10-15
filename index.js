@@ -48,7 +48,7 @@ function startFFmpeg() {
       '-maxrate 3000k',          // Maximum bitrate
       '-bufsize 6000k',          // Buffer size
       '-pix_fmt yuv420p',        // Pixel format
-      '-g 50',                   // Keyframe interval
+      '-g 50',                   // Keyframe interval (change if necessary)
       '-c:a aac',                // Audio codec: AAC
       '-b:a 128k',               // Audio bitrate
       '-ar 44100',               // Audio sample rate
@@ -57,6 +57,9 @@ function startFFmpeg() {
     .output(`rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`) // YouTube RTMP URL with stream key
     .on('start', () => {
       console.log('FFmpeg process started');
+    })
+    .on('stderr', (stderrLine) => {
+      console.log('FFmpeg stderr:', stderrLine); // Log FFmpeg's stderr to get detailed logs
     })
     .on('error', (err) => {
       console.error('Error during streaming:', err.message);
