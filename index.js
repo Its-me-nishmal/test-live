@@ -70,16 +70,17 @@ function startStreaming() {
       }
     ])
     .outputOptions([
-      '-c:v libx264',
-      '-preset veryfast',
-      '-maxrate 6800k',        // Max bitrate as per YouTube recommendation
-      '-bufsize 13600k',
-      '-pix_fmt yuv420p',
-      '-g 50',
-      '-c:a aac',
-      '-b:a 128k',
-      '-ar 44100',
-      '-f flv'
+      '-c:v libx264',          // Video codec: H.264
+      '-preset veryfast',      // Encoding preset for faster streaming
+      '-b:v 6800k',            // Video bit rate: 6800 Kbps
+      '-maxrate 6800k',        // Maximum bit rate
+      '-bufsize 13600k',       // Buffer size (double the maxrate)
+      '-pix_fmt yuv420p',      // Pixel format
+      '-g 50',                 // Keyframe interval (typically twice the frame rate)
+      '-c:a aac',              // Audio codec: AAC
+      '-b:a 128k',             // Audio bit rate
+      '-ar 44100',             // Audio sample rate
+      '-f flv'                 // Streaming format: FLV
     ])
     .output(youtubeStreamUrl)
     .on('start', (commandLine) => {
