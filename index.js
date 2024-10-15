@@ -58,10 +58,11 @@ function startStreaming() {
   }
 
   ffmpegStream = ffmpeg()
-    .input(BACKGROUND_IMAGE) // Loop the background image indefinitely
+    .input(BACKGROUND_IMAGE) // Input the background image
     .loop()
-    .input(MP3_FILE) // Loop the audio indefinitely
+    .input(MP3_FILE) // Input the looping audio file
     .inputOptions(['-stream_loop', '-1']) // Loop the audio indefinitely
+    .input(path.join(__dirname, 'dynamic_overlay.png')) // Input the overlay image
     .complexFilter([
       {
         filter: 'overlay',
