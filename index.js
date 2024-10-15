@@ -9,7 +9,7 @@ const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_
 const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static black background image
-const STREAM_KEY = 'su9z-j176-664y-47wb-1zq4'; // Your YouTube stream key
+const STREAM_KEY = 'g0qj-3f62-utg1-v0u8-72p3'; // Your YouTube stream key
 const PORT = process.env.PORT || 3000; // HTTP server port
 
 // Fetch Data from Google Apps Script
