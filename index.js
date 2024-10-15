@@ -72,8 +72,8 @@ function startStreaming() {
     .outputOptions([
       '-c:v libx264',
       '-preset veryfast',
-      '-maxrate 3000k',
-      '-bufsize 6000k',
+      '-maxrate 6800k',        // Max bitrate as per YouTube recommendation
+      '-bufsize 13600k',
       '-pix_fmt yuv420p',
       '-g 50',
       '-c:a aac',
