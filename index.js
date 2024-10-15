@@ -11,6 +11,7 @@ const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio fi
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static black background image
 const STREAM_KEY = 'g0qj-3f62-utg1-v0u8-72p3'; // Your YouTube stream key
 const PORT = process.env.PORT || 3000; // HTTP server port
+const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`; // YouTube RTMP URL with stream key
 
 // Fetch Data from Google Apps Script
 async function fetchYouTubeData() {
@@ -38,34 +39,30 @@ function startFFmpeg() {
   ffmpeg()
     .input(BACKGROUND_IMAGE) // Use the static black background image as the video input
     .input(MP3_FILE) // Audio input (MP3 file)
-    .inputOptions('-stream_loop -1') // Loop the audio indefinitely
+    .inputOptions(['-stream_loop -1', '-re']) // Loop audio and real-time flag
     .complexFilter([
       // Overlay text data (reload the overlay file every second)
       `drawtext=textfile=${OVERLAY_FILE}:reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`
     ])
-    .outputOptions([
-      '-c:v libx264',           // Video codec: H.264
-      '-preset veryfast',        // Faster encoding
-      '-maxrate 3000k',          // Maximum bitrate
-      '-bufsize 6000k',          // Buffer size
-      '-pix_fmt yuv420p',        // Pixel format
-      '-g 50',                   // Keyframe interval (change if necessary)
-      '-c:a aac',                // Audio codec: AAC
-      '-b:a 128k',               // Audio bitrate
-      '-ar 44100',               // Audio sample rate
-      '-f flv'                   // Streaming format: FLV
-    ])
-    .output(`rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`) // YouTube RTMP URL with stream key
-    .on('start', () => {
-      console.log('FFmpeg process started');
+    .addOption('-c:v', 'libx264') // Use H.264 codec for video
+    .addOption('-preset', 'veryfast') // Set encoding preset to reduce latency
+    .addOption('-maxrate', '3000k') // Max bitrate
+    .addOption('-bufsize', '6000k') // Buffer size
+    .addOption('-pix_fmt', 'yuv420p') // Pixel format
+    .addOption('-g', '50') // Keyframe interval
+    .addOption('-c:a', 'aac') // Use AAC codec for audio
+    .addOption('-b:a', '128k') // Audio bitrate
+    .addOption('-ar', '44100') // Audio sample rate
+    .addOption('-f', 'flv') // Format for streaming (YouTube uses FLV)
+    .output(youtubeStreamUrl) // Output to YouTube
+    .on('start', (commandLine) => {
+      console.log('FFmpeg process started with command:', commandLine);
     })
     .on('error', (err) => {
-      console.error('Error during streaming:', err.message);
+      console.error('Error occurred during streaming:', err.message);
     })
     .on('end', () => {
-      console.log('Streaming ended.');
-      // Restart the stream automatically when it ends
-      startFFmpeg();
+      console.log('Streaming finished.');
     })
     .run();
 }
