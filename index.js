@@ -2,12 +2,14 @@ const ffmpeg = require('fluent-ffmpeg');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 
 // Configuration Variables
-const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Replace with your Google Apps Script URL
+const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
 const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
-const STREAM_KEY = 'su9z-j176-664y-47wb-1zq4'; // Replace with your YouTube stream key
+const STREAM_KEY = 'su9z-j176-664y-47wb-1zq4'; // Your YouTube stream key
+const PORT = process.env.PORT || 3000; // HTTP server port
 
 // Fetch Data from Google Apps Script
 async function fetchYouTubeData() {
@@ -30,10 +32,10 @@ async function fetchYouTubeData() {
   }
 }
 
-// Start FFmpeg to Stream with Animated Gradient Background and Overlay
+// Start FFmpeg to Stream with Static Background and Overlay
 function startFFmpeg() {
   ffmpeg()
-    .input('color=s=1280x720:d=30:r=30') // Generate a static black background with 1280x720 resolution at 30 FPS
+    .input('color=c=black:size=1280x720') // Generate a static black background with 1280x720 resolution
     .input(MP3_FILE) // Audio input (MP3 file)
     .complexFilter([
       // Overlay text data (reload the overlay file every second)
@@ -67,7 +69,6 @@ function startFFmpeg() {
 // Update overlay and restart FFmpeg every minute
 function updateOverlayAndStream() {
   fetchYouTubeData(); // Fetch YouTube data
-
   setInterval(fetchYouTubeData, 60 * 1000); // Fetch data every minute
 
   // Start FFmpeg streaming
@@ -76,3 +77,11 @@ function updateOverlayAndStream() {
 
 // Run the update and stream process
 updateOverlayAndStream();
+
+// Create a simple HTTP server to keep the app alive
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('The stream is live!\n');
+}).listen(PORT, () => {
+  console.log(`HTTP server running on port ${PORT}`);
+});
