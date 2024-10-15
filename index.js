@@ -5,27 +5,37 @@ const path = require('path');
 const http = require('http');
 
 // Configuration Variables
-const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
+const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zTL_mIm8UQkONTv'; // Your Google Apps Script URL
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static black background image
-const STREAM_KEY = 'ces2-mcqc-g9px-2u7z-9u7b'; // Your YouTube stream key
+const STREAM_KEY = 'r9mj-chv0-2cqh-wb1a-2jdq'; // Your YouTube stream key
 const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`; // YouTube RTMP URL with stream key
 const PLACEHOLDER_URL = 'https://placehold.co/600x400'; // Base URL for dynamic placeholder images
 const PORT = process.env.PORT || 3000; // HTTP server port
 let ffmpegStream = null; // To store the FFmpeg process
 
-// Function to fetch data from Google Sheets and generate a dynamic overlay
+// Helper function to generate contrasting colors (dark background, light text)
+function generateContrastingColors() {
+  const darkColors = ['000000', '2c3e50', '34495e', '4A4947', '333333']; // Dark shades for background
+  const lightColors = ['FFFFFF', 'ecf0f1', 'f1c40f', 'f39c12', 'D8D2C2']; // Light shades for text
+
+  const randomBackground = darkColors[Math.floor(Math.random() * darkColors.length)];
+  const randomText = lightColors[Math.floor(Math.random() * lightColors.length)];
+
+  return { background: randomBackground, text: randomText };
+}
+
+// Function to fetch data from Google Sheets and generate a dynamic overlay image
 async function fetchYouTubeData() {
   try {
     const response = await axios.get(GOOGLE_SHEET_URL);
     const data = response.data;
 
-    // Generate a random color for the background and text
-    const randomColorBackground = Math.floor(Math.random()*16777215).toString(16);
-    const randomColorText = Math.floor(Math.random()*16777215).toString(16);
+    // Generate contrasting colors
+    const { background, text } = generateContrastingColors();
 
     // Prepare the dynamic placeholder URL with changing colors
-    const dynamicPlaceholderUrl = `${PLACEHOLDER_URL}/${randomColorBackground}/${randomColorText}/png?font=lora&text=Viewer%20Count:%20${data.viewerCount || 'N/A'}%20%0ALikes:%20${data.likes || 'N/A'}%20%0ASubscribers:%20${data.subscriberCount || 'N/A'}`;
+    const dynamicPlaceholderUrl = `${PLACEHOLDER_URL}/${background}/${text}/png?font=lora&text=Viewer%20Count:%20${data.viewerCount || 'N/A'}%20%0ALikes:%20${data.likes || 'N/A'}%20%0ASubscribers:%20${data.subscriberCount || 'N/A'}`;
 
     // Download the dynamic image as a new overlay image
     const overlayImagePath = path.join(__dirname, 'dynamic_overlay.png');
@@ -40,7 +50,7 @@ async function fetchYouTubeData() {
 
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
-        console.log(`Dynamic overlay generated with background color: ${randomColorBackground}, text color: ${randomColorText}`);
+        console.log(`Dynamic overlay generated with background color: ${background}, text color: ${text}`);
         resolve(overlayImagePath); // Return the path to the overlay image
       });
       writer.on('error', reject);
@@ -53,8 +63,8 @@ async function fetchYouTubeData() {
 // Function to start the continuous streaming process using FFmpeg
 function startStreaming() {
   if (ffmpegStream) {
-    console.log('FFmpeg is already streaming.');
-    return;
+    console.log('Stopping existing FFmpeg stream.');
+    ffmpegStream.kill('SIGTERM'); // Stop the existing stream
   }
 
   ffmpegStream = ffmpeg()
@@ -101,12 +111,12 @@ function startStreaming() {
     .run();
 }
 
-// Function to periodically update overlay without cutting the stream
+// Function to periodically update the overlay and restart the stream
 async function updateOverlayPeriodically() {
   try {
     const overlayPath = await fetchYouTubeData();
-    ffmpegStream.input(overlayPath); // Update the overlay dynamically
-    console.log('Overlay updated for the stream.');
+    console.log('Overlay updated. Restarting stream...');
+    startStreaming(); // Restart the stream with the updated overlay
   } catch (error) {
     console.error('Failed to update overlay:', error.message);
   }
