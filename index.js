@@ -5,11 +5,11 @@ const path = require('path');
 const http = require('http');
 
 // Configuration Variables
-const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=kTLa5erzSvhL-g4cIxF6yPPgPIyHfjwfqhZh4C2N3cHkOCdaW7cYF0j8i3gxfN7jzVmh3LL3IIVHIBzpksO1vZPvV4YqC7RNm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
+const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=r8aMoxBJgXauIey3dkWzvxkb4OqOzxyr017m43ve204mDGDX-lzbPUQjHpWN4HXpth5hpP5jko1bPx7BXL4olqcoJyYetRvhm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnPEC6EVWrQsyKm0cmRTr8CaiJZfdbLJZmabY-VkeKC7CaRtdECQE7PafMf8zGbI3l75LxStYuf8i3rEfpoDChNbNJVnIF2IHQ9z9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
 const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static background image
-const STREAM_KEY = 'r9mj-chv0-2cqh-wb1a-2jdq'; // Your YouTube stream key
+const STREAM_KEY = 'w5mf-vzsh-b1cm-t8kc-22h7'; // Your YouTube stream key
 const youtubeStreamUrl = `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`; // YouTube RTMP URL with stream key
 const PORT = process.env.PORT || 10000; // HTTP server port
 
@@ -23,7 +23,7 @@ function generateOverlayText(data) {
   const textColor = lightColors[Math.floor(Math.random() * lightColors.length)];
 
   const overlayText = `
-  [fg=${textColor}]Viewer Count: ${data.viewerCount || 'N/A'}\nLikes: ${data.likes || 'N/A'}\nSubscribers: ${data.subscriberCount || 'N/A'}
+  Live Viewer Count: ${data.viewerCount || 'N/A'}\nLikes: ${data.likes || 'N/A'}\nSubscribers: ${data.subscriberCount || 'N/A'}
   `;
 
   return overlayText.trim();
