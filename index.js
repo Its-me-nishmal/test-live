@@ -33,11 +33,9 @@ async function fetchYouTubeData() {
 // Start FFmpeg to Stream with Animated Gradient Background and Overlay
 function startFFmpeg() {
   ffmpeg()
-    .input('color=black:size=1280x720:rate=30') // Generate a black background at 1280x720 resolution
+    .input('color=s=1280x720:d=30:r=30') // Generate a static black background with 1280x720 resolution at 30 FPS
     .input(MP3_FILE) // Audio input (MP3 file)
     .complexFilter([
-      // Gradient Animation for Background
-      'geq=lum=\'128+128*sin(2*PI*t/10)\':cb=128:cr=128',
       // Overlay text data (reload the overlay file every second)
       `drawtext=textfile=${OVERLAY_FILE}:reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`
     ])
