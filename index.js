@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 
 // Configuration Variables
-const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=jrY6qgcIP0HclGr9W22qvj5h6WNkSG2yZRoIqKWQK9XMRTSBwYotjMZjavLa99F0QwDPZKvjjDZl9QU5FT0RP42aovy3fRUUm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zTL_mIm8UQkONTv'; // Your Google Apps Script URL
+const GOOGLE_SHEET_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=kTLa5erzSvhL-g4cIxF6yPPgPIyHfjwfqhZh4C2N3cHkOCdaW7cYF0j8i3gxfN7jzVmh3LL3IIVHIBzpksO1vZPvV4YqC7RNm5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnC_lH6Xes5sj60JYhGEpjf2RIE1hP9cK6jI0Ln1fsVsK0LcP46IkpFL8F9V7EmWWl2Qm3wh0R6cbKFXj2yb-_wPsOF67hWI8cNz9Jw9Md8uu&lib=MJrc9AgLu8ITr5HB7zZTL_mIm8UQkONTv'; // Your Google Apps Script URL
 const OVERLAY_FILE = path.join(__dirname, 'overlay.txt'); // Text file to store the overlay text
 const MP3_FILE = path.join(__dirname, 'sample.mp3'); // Path to the MP3 audio file
 const BACKGROUND_IMAGE = path.join(__dirname, 'bg.png'); // Path to the static background image
