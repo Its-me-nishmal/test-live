@@ -38,6 +38,7 @@ function startFFmpeg() {
   ffmpeg()
     .input(BACKGROUND_IMAGE) // Use the static black background image as the video input
     .input(MP3_FILE) // Audio input (MP3 file)
+    .inputOptions('-stream_loop -1') // Loop the audio indefinitely
     .complexFilter([
       // Overlay text data (reload the overlay file every second)
       `drawtext=textfile=${OVERLAY_FILE}:reload=1:fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`
@@ -58,14 +59,13 @@ function startFFmpeg() {
     .on('start', () => {
       console.log('FFmpeg process started');
     })
-    .on('stderr', (stderrLine) => {
-      console.log('FFmpeg stderr:', stderrLine); // Log FFmpeg's stderr to get detailed logs
-    })
     .on('error', (err) => {
       console.error('Error during streaming:', err.message);
     })
     .on('end', () => {
       console.log('Streaming ended.');
+      // Restart the stream automatically when it ends
+      startFFmpeg();
     })
     .run();
 }
